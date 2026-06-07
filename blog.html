@@ -42,26 +42,29 @@
     html { scroll-behavior: smooth; }
     body {
       font-family: 'Inter', 'system-ui', '-apple-system', sans-serif;
-      background: #fafafa;
+      background: linear-gradient(160deg, #f5f7fc 0%, #f8f5fa 25%, #faf8f5 50%, #f3f6fb 75%, #f6f3fa 100%);
+      background-attachment: fixed;
       color: #1a1a1a;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
     }
     ::selection { background: #c5d7eb; color: #273a55; }
 
-    /* ========== 背景 Blob ========== */
+    /* ========== 背景 Blob（覆盖四角 + 中间，消除纯白感） ========== */
     .bg-blob {
       position: fixed;
       border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.28;
+      filter: blur(120px);
+      opacity: 0.32;
       pointer-events: none;
       z-index: 0;
       will-change: transform;
     }
-    #blob1 { width: 520px; height: 520px; background: radial-gradient(circle, #a8c8f0 0%, transparent 70%); top: -10%; left: -5%; }
-    #blob2 { width: 440px; height: 440px; background: radial-gradient(circle, #d4b8e8 0%, transparent 70%); top: 50%; right: -8%; }
-    #blob3 { width: 380px; height: 380px; background: radial-gradient(circle, #b8d4e8 0%, transparent 70%); bottom: -5%; left: 30%; }
+    #blob1 { width: 620px; height: 620px; background: radial-gradient(circle, #c5dbf5 0%, transparent 70%); top: -12%; left: -10%; }
+    #blob2 { width: 500px; height: 500px; background: radial-gradient(circle, #e0d0f0 0%, transparent 70%); top: 40%; right: -12%; }
+    #blob3 { width: 460px; height: 460px; background: radial-gradient(circle, #c8ddf0 0%, transparent 70%); bottom: -8%; left: 25%; }
+    #blob4 { width: 380px; height: 380px; background: radial-gradient(circle, #f0d8e5 0%, transparent 70%); top: 65%; right: 30%; }
+    #blob5 { width: 300px; height: 300px; background: radial-gradient(circle, #d5e8f5 0%, transparent 70%); top: 15%; left: 45%; }
 
     /* ========== 页面转场遮罩 ========== */
     #page-overlay {
@@ -158,6 +161,8 @@
   <div id="blob1" class="bg-blob"></div>
   <div id="blob2" class="bg-blob"></div>
   <div id="blob3" class="bg-blob"></div>
+  <div id="blob4" class="bg-blob"></div>
+  <div id="blob5" class="bg-blob"></div>
 
   <!-- ===== 页面转场遮罩 ===== -->
   <div id="page-overlay"></div>
@@ -376,16 +381,24 @@
     // ========== 背景 Blob 呼吸动画 ==========
     (function animateBlobs() {
       gsap.to('#blob1', {
-        x: '8%', y: '6%', scale: 1.08,
-        duration: 11, repeat: -1, yoyo: true, ease: 'sine.inOut',
+        x: '10%', y: '8%', scale: 1.1,
+        duration: 13, repeat: -1, yoyo: true, ease: 'sine.inOut',
       });
       gsap.to('#blob2', {
-        x: '-5%', y: '-4%', scale: 0.94,
-        duration: 14, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 0.5,
+        x: '-6%', y: '-5%', scale: 0.92,
+        duration: 15, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 0.7,
       });
       gsap.to('#blob3', {
-        x: '-6%', y: '-7%', scale: 1.05,
-        duration: 12, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.2,
+        x: '-7%', y: '-8%', scale: 1.06,
+        duration: 14, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.4,
+      });
+      gsap.to('#blob4', {
+        x: '5%', y: '-6%', scale: 0.96,
+        duration: 12, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2.0,
+      });
+      gsap.to('#blob5', {
+        x: '-4%', y: '7%', scale: 1.04,
+        duration: 16, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 0.3,
       });
     })();
 
