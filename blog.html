@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>博客 & 摄影 · Shy</title>
+  <meta name="description" content="Shy 的博客与摄影墙 — 技术思考、动效美学、光影碎片。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            serif: ['Noto Serif SC', 'Georgia', 'serif'],
+          },
+          colors: {
+            accent: {
+              50: '#f4f7fb', 100: '#e8eff6', 200: '#c5d7eb',
+              300: '#9eb8db', 400: '#6b93c7', 500: '#4a77b1',
+              600: '#385e96', 700: '#2e4d7a', 800: '#2a4165', 900: '#273a55',
+            },
+          },
+          animation: {
+            'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+          },
+          keyframes: {
+            pulseSoft: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.3' } },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --overlay-color: #0f1117;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', 'system-ui', '-apple-system', sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: #c5d7eb; color: #273a55; }
+
+    /* ========== 背景 Blob ========== */
+    .bg-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.28;
+      pointer-events: none;
+      z-index: 0;
+      will-change: transform;
+    }
+    #blob1 { width: 520px; height: 520px; background: radial-gradient(circle, #a8c8f0 0%, transparent 70%); top: -10%; left: -5%; }
+    #blob2 { width: 440px; height: 440px; background: radial-gradient(circle, #d4b8e8 0%, transparent 70%); top: 50%; right: -8%; }
+    #blob3 { width: 380px; height: 380px; background: radial-gradient(circle, #b8d4e8 0%, transparent 70%); bottom: -5%; left: 30%; }
+
+    /* ========== 页面转场遮罩 ========== */
+    #page-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: var(--overlay-color);
+      transform: translateY(-100%);
+      pointer-events: none;
+    }
+
+    /* ========== 玻璃卡片 ========== */
+    .glass-card {
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(0,0,0,0.06);
+      transition: all 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .glass-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 48px -12px rgba(0,0,0,0.12), 0 8px 20px -8px rgba(0,0,0,0.06);
+      border-color: rgba(74,119,177,0.18);
+    }
+    .glass-card:hover .card-icon {
+      transform: scale(1.08);
+    }
+    .card-icon { transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1); }
+    .bento { border-radius: 1.5rem; }
+    .section-gap { margin-bottom: 6rem; }
+
+    /* ========== 博客卡片左边框 ========== */
+    .blog-item {
+      border-left: 2px solid transparent;
+      transition: all 0.35s ease;
+      margin-left: -2px;
+    }
+    .blog-item:hover {
+      border-left-color: #4a77b1;
+    }
+
+    /* ========== Lightbox ========== */
+    .lightbox-enter-active { transition: opacity 0.35s ease; }
+    .lightbox-leave-active { transition: opacity 0.25s ease; }
+    .lightbox-enter-from,
+    .lightbox-leave-to { opacity: 0; }
+
+    .lightbox-img-enter-active { transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); }
+    .lightbox-img-leave-active { transition: all 0.2s ease; }
+    .lightbox-img-enter-from { opacity: 0; transform: scale(0.92); }
+    .lightbox-img-leave-to { opacity: 0; transform: scale(0.96); }
+
+    /* ========== 瀑布流 ========== */
+    .masonry-item {
+      break-inside: avoid;
+      margin-bottom: 1rem;
+      transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .masonry-item:hover {
+      transform: scale(1.02);
+    }
+    .masonry-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 1.25rem;
+      transition: filter 0.5s ease;
+    }
+    .masonry-item:hover img {
+      filter: brightness(1.05);
+    }
+
+    /* ========== 博客展开动画 ========== */
+    .expand-enter-active { transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); }
+    .expand-leave-active { transition: all 0.25s ease; }
+    .expand-enter-from { opacity: 0; max-height: 0; }
+    .expand-enter-to { opacity: 1; max-height: 2000px; }
+    .expand-leave-from { opacity: 1; max-height: 2000px; }
+    .expand-leave-to { opacity: 0; max-height: 0; }
+
+    /* ========== 博客正文排版 ========== */
+    .prose h3 { font-size: 1.1rem; font-weight: 600; color: #1a1a1a; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: 'Noto Serif SC', Georgia, serif; }
+    .prose p { margin-bottom: 0.9rem; line-height: 1.85; }
+    .prose strong { font-weight: 500; color: #333; }
+    .prose em { font-style: italic; color: #6b93c7; }
+    .prose code { background: #f4f7fb; color: #4a77b1; padding: 0.15rem 0.4rem; border-radius: 0.3rem; font-size: 0.85em; font-weight: 400; }
+    .prose ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.9rem; }
+    .prose ul li { margin-bottom: 0.35rem; line-height: 1.7; }
+  </style>
+</head>
+<body class="relative">
+
+  <!-- ===== 背景流光 ===== -->
+  <div id="blob1" class="bg-blob"></div>
+  <div id="blob2" class="bg-blob"></div>
+  <div id="blob3" class="bg-blob"></div>
+
+  <!-- ===== 页面转场遮罩 ===== -->
+  <div id="page-overlay"></div>
+
+  <!-- ===== Vue App ===== -->
+  <div id="app">
+
+    <!-- ========== NAV ========== -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500" style="background: rgba(250,250,250,0.78); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-bottom: 1px solid rgba(0,0,0,0.06);">
+      <div class="max-w-6xl mx-auto px-6 md:px-10 flex items-center justify-between h-16">
+        <a href="index.html" data-transition class="text-lg font-semibold text-gray-900 tracking-tight">Shy</a>
+        <div class="flex items-center gap-8 text-sm font-light text-gray-500">
+          <a href="index.html" data-transition class="hover:text-gray-900 transition-colors duration-200">首页</a>
+          <a href="#blog" class="hover:text-gray-900 transition-colors duration-200">博客</a>
+          <a href="#gallery" class="hover:text-gray-900 transition-colors duration-200">摄影</a>
+          <a href="index.html#contact" data-transition class="hover:text-accent-500 transition-colors duration-200 font-medium">联系</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ========== BLOG HEADER ========== -->
+    <section id="blog" class="pt-28 pb-10">
+      <div class="max-w-3xl mx-auto px-6 md:px-10">
+        <p class="text-xs text-accent-400 font-medium uppercase tracking-[0.2em] mb-3 scroll-reveal">Writings</p>
+        <h1 class="text-4xl md:text-5xl font-serif font-semibold text-gray-900 scroll-reveal">博客</h1>
+        <p class="mt-4 text-lg text-gray-500 font-light max-w-lg scroll-reveal">
+          记录技术探索、动效美学与独立开发的生活碎片。
+        </p>
+
+        <!-- 标签筛选 -->
+        <div class="mt-6 flex flex-wrap gap-2 scroll-reveal">
+          <button
+            v-for="tag in allTags"
+            :key="tag"
+            @click="selectedTag = tag"
+            class="text-xs px-3 py-1.5 rounded-full font-light transition-all duration-300"
+            :class="tag === selectedTag
+              ? 'bg-accent-500 text-white shadow-sm'
+              : 'bg-gray-100/80 text-gray-500 hover:bg-gray-200'"
+          >{{ tag }}</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== BLOG LIST ========== -->
+    <section class="pb-8">
+      <div class="max-w-3xl mx-auto px-6 md:px-10">
+        <div class="space-y-3">
+          <article
+            v-for="(post, idx) in filteredPosts"
+            :key="idx"
+            class="blog-item glass-card bento p-6 md:p-8 scroll-reveal cursor-pointer"
+            @click="togglePost(idx)"
+          >
+            <div class="flex items-center gap-3 text-xs text-gray-400 font-light mb-2">
+              <time>{{ post.date }}</time>
+              <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+              <span>{{ post.readTime }}</span>
+              <span v-if="expandedIndex === idx" class="text-accent-400 font-medium ml-auto">▲ 收起</span>
+              <span v-else class="text-accent-400 font-medium ml-auto">▼ 展开阅读</span>
+            </div>
+            <h2 class="text-xl font-medium text-gray-900 transition-colors">
+              {{ post.title }}
+            </h2>
+            <p class="mt-2 text-sm text-gray-500 font-light leading-relaxed" :class="{ 'line-clamp-2': expandedIndex !== idx }">
+              {{ post.excerpt }}
+            </p>
+
+            <!-- 展开的完整正文 -->
+            <Transition name="expand">
+              <div
+                v-if="expandedIndex === idx"
+                class="mt-6 pt-6 border-t border-gray-100"
+              >
+                <div class="prose prose-gray max-w-none text-gray-700 font-light leading-relaxed text-sm" v-html="post.content"></div>
+              </div>
+            </Transition>
+
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span
+                v-for="tag in post.tags"
+                :key="tag"
+                class="text-[10px] px-2 py-0.5 rounded-full bg-accent-50 text-accent-600 font-medium"
+              >{{ tag }}</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-if="filteredPosts.length === 0" class="py-20 text-center">
+          <p class="text-gray-400 font-light">该标签下暂无文章</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== GALLERY HEADER ========== -->
+    <section id="gallery" class="pt-12 pb-8">
+      <div class="max-w-6xl mx-auto px-6 md:px-10">
+        <p class="text-xs text-accent-400 font-medium uppercase tracking-[0.2em] mb-3 scroll-reveal">Gallery</p>
+        <h2 class="text-3xl md:text-4xl font-serif font-semibold text-gray-900 scroll-reveal">摄影墙</h2>
+        <p class="mt-3 text-lg text-gray-500 font-light max-w-lg scroll-reveal">
+          用镜头收藏城市的光与影。
+        </p>
+      </div>
+    </section>
+
+    <!-- ========== GALLERY MASONRY ========== -->
+    <section class="pb-16">
+      <div class="max-w-6xl mx-auto px-6 md:px-10">
+        <div id="masonry-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4">
+          <div
+            v-for="(img, idx) in galleryImages"
+            :key="idx"
+            class="masonry-item scroll-reveal cursor-pointer"
+            @click="openLightbox(idx)"
+          >
+            <img
+              :src="img.src"
+              :alt="img.alt"
+              loading="lazy"
+              class="w-full"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== BACK LINK ========== -->
+    <section class="pb-12">
+      <div class="max-w-6xl mx-auto px-6 md:px-10 text-center">
+        <a href="index.html" data-transition class="inline-flex items-center gap-2 text-sm text-accent-500 hover:text-accent-600 font-light transition-colors group">
+          <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+          返回首页
+        </a>
+      </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="border-t border-gray-100/80">
+      <div class="max-w-6xl mx-auto px-6 md:px-10 py-8 text-center">
+        <p class="text-xs text-gray-300 font-light">© 2026 Shy. Crafted with care.</p>
+      </div>
+    </footer>
+
+    <!-- ========== LIGHTBOX (Teleported to body) ========== -->
+    <Teleport to="body">
+      <Transition name="lightbox">
+        <div
+          v-if="lightboxVisible"
+          class="fixed inset-0 z-[10001] flex items-center justify-center"
+          @click.self="closeLightbox"
+        >
+          <!-- 毛玻璃背景 -->
+          <div class="absolute inset-0 bg-black/92 backdrop-blur-xl"></div>
+
+          <!-- 关闭按钮 -->
+          <button
+            @click="closeLightbox"
+            class="absolute top-6 right-6 z-10 text-white/60 hover:text-white transition-colors"
+            aria-label="关闭"
+          >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+
+          <!-- 上一张 -->
+          <button
+            v-if="galleryImages.length > 1"
+            @click.stop="prevImage"
+            class="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white transition-colors p-2"
+            aria-label="上一张"
+          >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
+          <!-- 图片 -->
+          <Transition name="lightbox-img" mode="out-in">
+            <img
+              :key="currentLightboxIndex"
+              :src="galleryImages[currentLightboxIndex]?.src"
+              :alt="galleryImages[currentLightboxIndex]?.alt"
+              class="relative z-10 max-h-[88vh] max-w-[92vw] object-contain rounded-xl shadow-2xl select-none"
+            />
+          </Transition>
+
+          <!-- 下一张 -->
+          <button
+            v-if="galleryImages.length > 1"
+            @click.stop="nextImage"
+            class="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white transition-colors p-2"
+            aria-label="下一张"
+          >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+
+          <!-- 计数器 -->
+          <div v-if="galleryImages.length > 1" class="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/40 text-sm font-light z-10">
+            {{ currentLightboxIndex + 1 }} / {{ galleryImages.length }}
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+  </div>
+
+  <!-- ===== Scripts ===== -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <script>
+    // ========== 背景 Blob 呼吸动画 ==========
+    (function animateBlobs() {
+      gsap.to('#blob1', {
+        x: '8%', y: '6%', scale: 1.08,
+        duration: 11, repeat: -1, yoyo: true, ease: 'sine.inOut',
+      });
+      gsap.to('#blob2', {
+        x: '-5%', y: '-4%', scale: 0.94,
+        duration: 14, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 0.5,
+      });
+      gsap.to('#blob3', {
+        x: '-6%', y: '-7%', scale: 1.05,
+        duration: 12, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.2,
+      });
+    })();
+
+    // ========== 页面转场 ==========
+    (function pageTransition() {
+      const overlay = document.getElementById('page-overlay');
+
+      if (sessionStorage.getItem('pageTransition') === 'in') {
+        overlay.style.transform = 'translateY(0%)';
+        gsap.to(overlay, {
+          y: '-100%',
+          duration: 0.55,
+          delay: 0.08,
+          ease: 'power3.inOut',
+          onComplete: () => { overlay.style.transform = 'translateY(-100%)'; }
+        });
+        sessionStorage.removeItem('pageTransition');
+      }
+
+      document.querySelectorAll('a[data-transition]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const href = link.getAttribute('href');
+          gsap.to(overlay, {
+            y: '0%',
+            duration: 0.5,
+            ease: 'power3.inOut',
+            onComplete: () => {
+              sessionStorage.setItem('pageTransition', 'in');
+              window.location.href = href;
+            }
+          });
+        });
+      });
+    })();
+
+    // ========== Vue 3 应用 ==========
+    const { createApp, ref, computed, onMounted, nextTick, onUnmounted } = Vue;
+
+    createApp({
+      setup() {
+        // ---- 博客数据（含完整正文） ----
+        const blogPosts = [
+          {
+            date: '2026 年 5 月 20 日',
+            readTime: '阅读 8 min',
+            title: 'Web 动效美学：从 CSS Transition 到 GSAP 交响乐',
+            excerpt: '动效不是锦上添花，而是产品语言的一部分。本文深入探讨 Web 动画的四个层级——微交互、转场、叙事动画与数据可视化动效，并分享 GSAP ScrollTrigger 在实际项目中的最佳实践与性能调优策略。',
+            content: `<p>动画之于界面，如同语调之于语言——它不是可有可无的装饰，而是决定信息如何被感知的核心要素。</p>
+<h3>动画的四个层级</h3>
+<p><strong>第一层：微交互（Micro-interactions）</strong></p>
+<p>按钮的 hover 态、卡片的按压反馈、加载态的骨架屏——这些毫秒级的细节构成了用户对产品"质感"的第一印象。一个好用的微交互应当遵循<em>预期管理原则</em>：在任何状态变化发生之前，先给用户一个视觉暗示。</p>
+<p>比如，当用户将鼠标悬停在一张 Bento 卡片上时，卡片不只是"突然弹起"，而是经历一个流畅的缓出曲线——<code>cubic-bezier(0.23, 1, 0.32, 1)</code>，这正是 Apple 设计师钟爱的"弹性减速"节奏。</p>
+<p><strong>第二层：转场（Transitions）</strong></p>
+<p>页面切换、路由跳转、模态框的进出——这些"空间移动"需要帮助用户建立心智模型。我喜欢用 GSAP 的 <code>power3.inOut</code> 缓动来实现全屏遮罩转场：自下而上吞噬旧页面，再向上推开露出新页面。这个方向暗示着"翻开新的一页"。</p>
+<p><strong>第三层：叙事动画（Narrative Animation）</strong></p>
+<p>滚动驱动的叙事动画是近年来网页设计最令人兴奋的趋势之一。通过 GSAP ScrollTrigger，我们可以让 DOM 元素随着用户的滚动位置精确地变换——时间线的线条延伸、技能卡片像多米诺骨牌般依次滑入、Hero 标题逐行升起。</p>
+<p>关键在于 <code>stagger</code>（交错延迟）：永远不要让所有元素同时出现。0.08 秒的间隔足以让人眼感知到"流动"而非"闪现"。</p>
+<p><strong>第四层：数据可视化动效</strong></p>
+<p>当数字从 0 跳动到最终值，当图表从一条平线生长为起伏的曲线——数据不再冰冷，而是有了生命。</p>
+<h3>性能调优实践</h3>
+<p>在项目中使用 GSAP 时，有几点需要特别注意：始终对 <code>transform</code> 和 <code>opacity</code> 做动画（GPU 加速），避免在动画过程中触发 layout/paint；使用 <code>will-change</code> 提前告知浏览器；在移动端降低动画复杂度（减少 blur 滤镜、简化 stagger 数量）。</p>
+<h3>结语</h3>
+<p>动效设计的终极目标不是"炫技"，而是让用户感觉不到技术的存在——一切都那么自然、流畅、理所当然。那才是真正的高级感。✨</p>`,
+            tags: ['动效设计', 'GSAP', '前端工程'],
+          },
+          {
+            date: '2026 年 4 月 12 日',
+            readTime: '阅读 12 min',
+            title: '出海全栈实践：从零搭建多区域部署的 Nuxt 3 应用',
+            excerpt: '面向全球用户的 Web 应用如何兼顾性能与可靠性？本文记录了一次完整的出海架构实践，涵盖边缘计算、i18n 国际化、Cloudflare R2 静态托管与智能 CDN 回源策略。',
+            content: `<p>去年年底，我接到一个任务：为一款面向东南亚和中东市场的 SaaS 产品搭建前端架构。要求很明确——首屏加载不超过 2 秒（含 3G 网络）、支持 5 种语言、99.9% 可用性。这篇文章记录了我从架构设计到上线的完整思考。</p>
+<h3>为什么选择 Nuxt 3</h3>
+<p>Nuxt 3 的混合渲染模式是这个场景的最佳选择：营销页面（首页、博客）使用 SSG 预渲染为静态 HTML，保证 SEO 和首屏速度；App 控制台使用 SSR，按需获取实时数据。配合 <code>nuxt-content</code> 管理博客和文档，团队的非技术人员也能直接提交 Markdown 更新内容。</p>
+<h3>边缘计算与 CDN 策略</h3>
+<p>我们将静态资源部署到 Cloudflare R2（兼容 S3 API，但零出站费用），通过 Cloudflare CDN 分发到全球 300+ 边缘节点。动态请求则回源到新加坡的 Node.js 服务器。关键配置项：</p>
+<ul><li>图片启用 <code>format=auto</code> 自动转 WebP/AVIF</li><li>HTML 缓存 10 分钟，API 响应不缓存</li><li>启用 Early Hints（103 状态码）预加载关键资源</li></ul>
+<h3>i18n 国际化方案</h3>
+<p>使用 Nuxt 3 的 <code>@nuxtjs/i18n</code> 模块，配合 URL 前缀策略（<code>/en/</code>、<code>/th/</code>、<code>/ar/</code>）。RTL（阿拉伯语）布局通过 Tailwind 的 <code>dir="rtl"</code> + 逻辑属性无缝支持。翻译文件托管在 Lokalise，CI 流程自动拉取最新翻译并提交 PR。</p>
+<h3>监控与灰度发布</h3>
+<p>上线不是终点。我们接入了 Cloudflare Analytics + Sentry 进行全链路监控，并通过 Cloudflare Workers 实现基于地理位置的灰度发布——新功能先在新加坡小流量验证，确认无异常后再全量推至其他区域。</p>
+<p>这套架构上线三个月后，全球平均 LCP 从 4.8s 降至 1.6s，跳出率下降了 34%。出海不是简单的"翻译一下"，而是对性能、文化和可靠性的一次全面考验。🌏</p>`,
+            tags: ['全栈', 'Nuxt 3', 'Cloudflare', '出海'],
+          },
+          {
+            date: '2026 年 3 月 5 日',
+            readTime: '阅读 6 min',
+            title: '独立开发者的 AI 工具链：让机器写代码的一年',
+            excerpt: '用了一年 AI 编程助手后，我重新思考了"效率"的定义。这篇短文不是评测，而是一份关于人机协作的真诚复盘——AI 擅长什么、不擅长什么、以及为什么品味比速度更重要。',
+            content: `<p>2025 年初，我决定认真地、系统性地将 AI 编程助手纳入日常工作流。一年后回头看，有些结论和我预想的完全不同。</p>
+<h3>AI 真正擅长的事</h3>
+<p><strong>样板代码生成：</strong>CRUD 接口、配置文件、单元测试模板——这些重复性工作 AI 完成得又快又好。我现在几乎不手写 <code>package.json</code> 的 scripts 段落了。</p>
+<p><strong>陌生领域的快速上手：</strong>当我第一次接触 Cloudflare Durable Objects 时，AI 在 30 秒内给了我一个完整的工作示例。它不会替代阅读文档，但能帮我快速建立心智模型。</p>
+<p><strong>重构与翻译：</strong>将一段 Python 脚本翻译为 TypeScript、将 CSS 迁移到 Tailwind、将 Options API 转为 Composition API——这类"翻译类"任务是 AI 的舒适区。</p>
+<h3>AI 明显不擅长的事</h3>
+<p><strong>架构决策：</strong>AI 可以给你 5 种方案，但它无法理解你的团队背景、历史债务和隐性约束。它不会说"这个方案虽然技术优雅，但你的团队可能维护不了"。</p>
+<p><strong>品味与审美：</strong>AI 生成的 UI 通常"可用但不好看"。它缺少对留白、节奏、视觉重心的直觉感知。这就是为什么设计决策仍然需要人来拍板。</p>
+<p><strong>调试复杂 Bug：</strong>涉及多个服务交互、竞态条件或非确定性的 bug，AI 的"猜答案"式思维往往会浪费时间。这种时候，传统调试工具（断点、日志、二分法缩小范围）仍然不可替代。</p>
+<h3>我的 AI 工具链</h3>
+<p>经过一年磨合，我现在的工具链稳定在：<strong>Claude Code</strong>（复杂重构与架构讨论）、<strong>GitHub Copilot</strong>（行级代码补全）、<strong>本地模型</strong>（敏感数据处理）。三种工具各司其职，没有哪一个能包揽一切。</p>
+<h3>最重要的心得</h3>
+<p>用 AI 写代码像开自动挡车——它让你轻松上路，但不代表你不需要懂发动机原理。那些试图完全依赖 AI、不读文档、不思考架构的人，最终会发现自己困在一堆能跑但无法维护的代码里。</p>
+<p><strong>品味比速度更重要。</strong>AI 可以帮你更快地到达目的地，但目的地在哪里、值不值得去——这些问题的答案，仍然需要人来给出。🧠</p>`,
+            tags: ['AI', '独立开发', '效率工具'],
+          },
+        ];
+
+        const selectedTag = ref('全部');
+        const expandedIndex = ref(-1);
+
+        function togglePost(idx) {
+          expandedIndex.value = expandedIndex.value === idx ? -1 : idx;
+        }
+
+        const allTags = computed(() => {
+          const tags = new Set(['全部']);
+          blogPosts.forEach(p => p.tags.forEach(t => tags.add(t)));
+          return Array.from(tags);
+        });
+
+        const filteredPosts = computed(() => {
+          if (selectedTag.value === '全部') return blogPosts;
+          return blogPosts.filter(p => p.tags.includes(selectedTag.value));
+        });
+
+        // ---- 摄影墙数据（高质感风景/建筑占位图） ----
+        const galleryImages = [
+          // Unsplash 高质量建筑/风景图片（免费使用）
+          { src: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=600&h=800&fit=crop', alt: '现代建筑外观' },
+          { src: 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?w=600&h=450&fit=crop', alt: '城市天际线' },
+          { src: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&h=750&fit=crop', alt: '山水自然' },
+          { src: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&h=500&fit=crop', alt: '都市夜景' },
+          { src: 'https://images.unsplash.com/photo-1444723121867-7a241cacace9?w=600&h=700&fit=crop', alt: '城市剪影' },
+          { src: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&h=550&fit=crop', alt: '自然风光' },
+          { src: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&h=650&fit=crop', alt: '都市建筑' },
+          { src: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&h=500&fit=crop', alt: '城市街道' },
+          { src: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=600&h=720&fit=crop', alt: '自然光影' },
+          { src: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=600&h=580&fit=crop', alt: '城市俯瞰' },
+          { src: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&h=480&fit=crop', alt: '巴黎街景' },
+          { src: 'https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&h=680&fit=crop', alt: '极简建筑' },
+        ];
+
+        // ---- Lightbox 状态 ----
+        const lightboxVisible = ref(false);
+        const currentLightboxIndex = ref(0);
+
+        function openLightbox(index) {
+          currentLightboxIndex.value = index;
+          lightboxVisible.value = true;
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+          lightboxVisible.value = false;
+          document.body.style.overflow = '';
+        }
+
+        function nextImage() {
+          currentLightboxIndex.value = (currentLightboxIndex.value + 1) % galleryImages.length;
+        }
+
+        function prevImage() {
+          currentLightboxIndex.value = (currentLightboxIndex.value - 1 + galleryImages.length) % galleryImages.length;
+        }
+
+        function handleKeydown(e) {
+          if (!lightboxVisible.value) return;
+          if (e.key === 'Escape') closeLightbox();
+          if (e.key === 'ArrowRight') nextImage();
+          if (e.key === 'ArrowLeft') prevImage();
+        }
+
+        onMounted(() => {
+          window.addEventListener('keydown', handleKeydown);
+
+          // ---- GSAP 滚动动画 ----
+          nextTick(() => {
+            setupScrollReveal();
+          });
+        });
+
+        onUnmounted(() => {
+          window.removeEventListener('keydown', handleKeydown);
+          document.body.style.overflow = '';
+        });
+
+        return {
+          blogPosts,
+          selectedTag,
+          allTags,
+          filteredPosts,
+          expandedIndex,
+          togglePost,
+          galleryImages,
+          lightboxVisible,
+          currentLightboxIndex,
+          openLightbox,
+          closeLightbox,
+          nextImage,
+          prevImage,
+        };
+      }
+    }).mount('#app');
+
+    // ========== GSAP ScrollTrigger 滚动动画 ==========
+    function setupScrollReveal() {
+      gsap.registerPlugin(ScrollTrigger);
+
+      const revealEls = document.querySelectorAll('.scroll-reveal');
+      if (revealEls.length === 0) return;
+
+      // 使用 stagger 让卡片像多米诺骨牌一样依次滑入
+      gsap.fromTo(revealEls,
+        { y: 50, opacity: 0 },
+        {
+          y: 0, opacity: 1,
+          duration: 0.72,
+          stagger: 0.08,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: revealEls[0],
+            start: 'top 88%',
+            toggleActions: 'play none none none',
+          },
+        }
+      );
+
+      // 博客卡片独立延迟（更大的 stagger 让阅读感更强）
+      const blogCards = document.querySelectorAll('#blog .scroll-reveal, section.pb-8 .scroll-reveal');
+      // 已被上面统一处理，这里不需要重复
+    }
+  </script>
+</body>
+</html>

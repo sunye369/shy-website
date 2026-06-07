@@ -1,0 +1,2 @@
+# Cloudflare Pages 路由规则
+/blog   /blog.html   200
